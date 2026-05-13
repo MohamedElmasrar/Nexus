@@ -1,5 +1,5 @@
 """
-JWT token handling, password hashing, and Fernet encryption for ownCloud creds.
+JWT token handling and Fernet encryption for ownCloud credentials.
 
 Deliberately kept as pure functions with no database or HTTP dependencies
 so they can be imported from anywhere without circular imports.
@@ -9,21 +9,8 @@ from datetime import datetime, timedelta, timezone
 
 from cryptography.fernet import Fernet
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from app.core.config import get_settings
-
-# ── Password hashing (kept for backwards compat, not actively used) ──────
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
 
 
 # ── Fernet encryption for ownCloud credentials in JWT ────────────────────

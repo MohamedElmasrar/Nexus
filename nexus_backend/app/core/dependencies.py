@@ -6,7 +6,7 @@ FastAPI dependency functions used across routers.
 * require_admin    – raises 403 unless caller is an admin
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer

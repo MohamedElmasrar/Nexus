@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Loader2,
   ShieldCheck,
+  Search,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -23,6 +24,7 @@ const ADMIN_NAV = [
   { icon: <Users size={18} />, label: "Users", href: "/admin/users" },
   { icon: <FolderTree size={18} />, label: "Groups", href: "/admin/groups" },
   { icon: <HardDrive size={18} />, label: "Storage", href: "/admin/drives" },
+  { icon: <Search size={18} />, label: "Vector Search", href: "/admin/vector-search" },
 ];
 
 export default function AdminLayout({

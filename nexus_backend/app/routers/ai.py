@@ -88,3 +88,26 @@ async def list_indexed_files(
     """List all files currently in the vector store."""
     files = vector_store.get_indexed_files()
     return {"total_files": len(files), "files": files}
+
+
+@router.get("/search")
+async def search_vectors(
+    q: str = Query(..., description="Search query text"),
+    n: int = Query(5, ge=1, le=50, description="Number of results to return"),
+    current_user: CurrentUser = Depends(require_admin),
+):
+    """Search the vector store and return matching chunks with cosine distances."""
+    results = vector_store.search(query=q, n_results=n)
+    return {
+        "query": q,
+        "total": len(results),
+        "results": [
+            {
+                "text": r.text,
+                "file_path": r.file_path,
+                "chunk_index": r.chunk_index,
+                "distance": r.distance,
+            }
+            for r in results
+        ],
+    }

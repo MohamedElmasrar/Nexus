@@ -260,6 +260,10 @@ export const api = {
       `/api/v1/ai/index?file_path=${encodeURIComponent(filePath)}`,
       { method: "DELETE" }
     ),
+  vectorSearch: (query: string, n: number = 5) =>
+    nexusFetch<VectorSearchResponse>(
+      `/api/v1/ai/search?q=${encodeURIComponent(query)}&n=${n}`
+    ),
 
   // ── Chat / Conversations ────────────────────────────────────────────────
   listConversations: () =>
@@ -316,4 +320,19 @@ export interface ChatAskResponse {
   sources: ChatSource[];
   message_id: number;
   conversation_id: number;
+}
+
+// ── Vector Search Types ─────────────────────────────────────────────────────
+
+export interface VectorSearchResult {
+  text: string;
+  file_path: string;
+  chunk_index: number;
+  distance: number;
+}
+
+export interface VectorSearchResponse {
+  query: string;
+  total: number;
+  results: VectorSearchResult[];
 }

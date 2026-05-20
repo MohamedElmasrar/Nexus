@@ -16,6 +16,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Ensure an empty public/ dir exists so COPY doesn't fail in CI
+RUN mkdir -p public
+
 # Build-time env — the API URL inside Docker network
 ENV NEXT_PUBLIC_API_URL=http://api:8000
 

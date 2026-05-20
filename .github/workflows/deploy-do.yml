@@ -65,7 +65,7 @@ jobs:
           REGISTRY_NAME: ${{ env.REGISTRY_NAME }}
           IMAGE_TAG: ${{ github.sha }}
           DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
-          REPO_URL: https://github.com/MohamedElmasrar/Nexus
+          REPO_URL: git@github.com:MohamedElmasrar/Nexus.git
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USERNAME }}
@@ -73,6 +73,10 @@ jobs:
           envs: REGISTRY,REGISTRY_NAME,IMAGE_TAG,DIGITALOCEAN_ACCESS_TOKEN,REPO_URL
           script: |
             set -e
+            mkdir -p ~/.ssh
+            chmod 700 ~/.ssh
+            ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+
             if [ ! -d /opt/nexus/.git ]; then
               sudo mkdir -p /opt/nexus
               sudo chown -R $USER:$USER /opt/nexus

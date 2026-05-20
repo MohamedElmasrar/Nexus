@@ -48,9 +48,11 @@ export async function POST(request: NextRequest) {
     }
 
     const response = NextResponse.json({ success: true });
+    const forwardedProto = request.headers.get("x-forwarded-proto");
+    const isHttps = forwardedProto === "https" || request.nextUrl.protocol === "https:";
     response.cookies.set(NEXUS_TOKEN_COOKIE, accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isHttps,
       sameSite: "lax",
       path: "/",
       maxAge: 60 * 60 * 8, // 8 hours

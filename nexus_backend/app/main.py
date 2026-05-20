@@ -39,10 +39,21 @@ async def lifespan(app: FastAPI):
     """
     Startup:
     1. Create database tables.
+    2. Ensure caching columns exist in file_sync_status.
     """
     # Create tables
     Base.metadata.create_all(bind=engine)
     logger.info("Database tables ensured")
+
+    # Ensure caching columns exist in file_sync_status
+    from sqlalchemy import text
+    with engine.begin() as conn:
+        for column, col_type in [("ai_summary", "TEXT"), ("ai_takeaways", "TEXT"), ("ai_tags", "TEXT")]:
+            try:
+                conn.execute(text(f"ALTER TABLE file_sync_status ADD COLUMN {column} {col_type}"))
+                logger.info(f"Ensured column {column} exists in file_sync_status")
+            except Exception:
+                pass
 
     yield  # ← app is running
 

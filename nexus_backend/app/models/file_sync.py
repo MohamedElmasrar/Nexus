@@ -24,6 +24,9 @@ class FileSyncStatus(Base):
     synced_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    ai_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_takeaways: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_tags: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

@@ -1,0 +1,124 @@
+# ─────────────────────────────────────────────────────────────
+# Nexus — Production Docker Compose (DigitalOcean)
+# ─────────────────────────────────────────────────────────────
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: nexus-db
+    environment:
+      POSTGRES_DB: nexus
+      POSTGRES_USER: nexus
+      POSTGRES_PASSWORD: nexus
+    ports:
+      - "5433:5432"
+    volumes:
+      - nexus-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U nexus -d nexus" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  owncloud:
+    image: owncloud/server:10.15
+    container_name: nexus-owncloud
+    ports:
+      - "8080:8080"
+    environment:
+      OWNCLOUD_DOMAIN: localhost:8080
+      OWNCLOUD_TRUSTED_DOMAINS: localhost,owncloud
+      OWNCLOUD_DB_TYPE: mysql
+      OWNCLOUD_DB_NAME: owncloud
+      OWNCLOUD_DB_USERNAME: owncloud
+      OWNCLOUD_DB_PASSWORD: owncloud
+      OWNCLOUD_DB_HOST: owncloud-db
+      OWNCLOUD_ADMIN_USERNAME: admin
+      OWNCLOUD_ADMIN_PASSWORD: admin
+      OWNCLOUD_REDIS_ENABLED: "true"
+      OWNCLOUD_REDIS_HOST: owncloud-redis
+    depends_on:
+      owncloud-db:
+        condition: service_healthy
+      owncloud-redis:
+        condition: service_started
+    volumes:
+      - owncloud-data:/mnt/data
+    healthcheck:
+      test: [ "CMD", "/usr/bin/healthcheck" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  owncloud-db:
+    image: mariadb:10.11
+    container_name: nexus-owncloud-db
+    environment:
+      MYSQL_ROOT_PASSWORD: owncloud
+      MYSQL_DATABASE: owncloud
+      MYSQL_USER: owncloud
+      MYSQL_PASSWORD: owncloud
+    volumes:
+      - owncloud-db-data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-u", "root", "--password=owncloud" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  owncloud-redis:
+    image: redis:7-alpine
+    container_name: nexus-owncloud-redis
+    volumes:
+      - owncloud-redis-data:/data
+    restart: unless-stopped
+
+  api:
+    image: registry.digitalocean.com/nexusregistry/nexus-backend:${IMAGE_TAG:-latest}
+    container_name: nexus-api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://nexus:nexus@db:5432/nexus
+      SECRET_KEY: dev-secret-key-do-not-use-in-production
+      ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: "60"
+      FIRST_ADMIN_USERNAME: admin
+      FIRST_ADMIN_PASSWORD: admin
+      FIRST_ADMIN_EMAIL: admin@nexus.local
+      OWNCLOUD_URL: http://owncloud:8080
+      OWNCLOUD_USERNAME: admin
+      OWNCLOUD_PASSWORD: admin
+      CORS_ORIGINS: http://localhost:3000,http://frontend:3000,http://localhost:3001
+      MAX_UPLOAD_SIZE_MB: "100"
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: gemini-2.5-flash
+      CHROMA_PERSIST_DIR: /app/chroma_data
+    volumes:
+      - chroma-data:/app/chroma_data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: registry.digitalocean.com/nexusregistry/nexus-frontend:${IMAGE_TAG:-latest}
+    container_name: nexus-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      API_URL: http://api:8000
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  nexus-db-data:
+  chroma-data:
+  owncloud-data:
+  owncloud-db-data:
+  owncloud-redis-data:

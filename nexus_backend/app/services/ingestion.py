@@ -86,6 +86,10 @@ def _update_sync_status(db: Session, file_path: str, status: str) -> None:
         db.add(record)
     else:
         record.status = status
+        # Clear AI cache to prevent stale summaries on re-indexing
+        record.ai_summary = None
+        record.ai_takeaways = None
+        record.ai_tags = None
         if status == "synced":
             record.synced_at = datetime.now(timezone.utc)
     db.commit()

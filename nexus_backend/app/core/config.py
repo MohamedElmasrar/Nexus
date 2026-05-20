@@ -53,7 +53,7 @@ class Settings(BaseSettings):
 
     # ── AI / RAG ────────────────────────────────────────────────────────
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-2.5-flash"
+    GEMINI_MODEL: str = "gemma-4-31b-it"
     CHROMA_PERSIST_DIR: str = "./chroma_data"
     CHUNK_SIZE: int = 500
     CHUNK_OVERLAP: int = 50

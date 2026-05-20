@@ -79,12 +79,16 @@ async function proxyRequest(request: NextRequest): Promise<NextResponse> {
 
     const contentType = backendRes.headers.get("content-type");
     if (contentType && !contentType.includes("application/json")) {
+      const headers: Record<string, string> = {
+        "Content-Type": contentType,
+      };
+      const disposition = backendRes.headers.get("content-disposition");
+      if (disposition && !disposition.toLowerCase().includes("attachment")) {
+        headers["Content-Disposition"] = disposition;
+      }
       return new NextResponse(backendRes.body, {
         status: backendRes.status,
-        headers: {
-          "Content-Type": contentType,
-          "Content-Disposition": backendRes.headers.get("content-disposition") || "",
-        },
+        headers,
       });
     }
 

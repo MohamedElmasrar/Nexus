@@ -10,6 +10,7 @@ import logging
 from dataclasses import dataclass, field
 
 from google import genai
+from pydantic import BaseModel
 
 from app.core.config import get_settings
 from app.services.vector_store import SearchResult
@@ -111,3 +112,57 @@ def ask(question: str, context_results: list[SearchResult]) -> LLMResponse:
             })
 
     return LLMResponse(answer=answer, sources=sources)
+
+
+class DocumentSummary(BaseModel):
+    summary: str
+    takeaways: list[str]
+    tags: list[str]
+
+
+def summarize_document(file_path: str, chunk_texts: list[str]) -> DocumentSummary:
+    """
+    Generate an AI summary, takeaways, and tags for a document using Gemini.
+    """
+    settings = get_settings()
+    if not settings.GEMINI_API_KEY:
+        return DocumentSummary(
+            summary="Gemini API Key is not configured.",
+            takeaways=["Please set the GEMINI_API_KEY environment variable."],
+            tags=["unconfigured"]
+        )
+
+    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    
+    # Combine chunks up to ~15,000 characters to keep it quick and cost-effective
+    full_text = "\n\n".join(chunk_texts)[:15000]
+    
+    prompt = f"""You are an expert document analysis assistant. Analyze the following document text from file '{file_path}'.
+Produce a summary of the document, a list of key takeaways, and a few high-level categorizing tags.
+
+Document text:
+{full_text}
+"""
+
+    try:
+        response = client.models.generate_content(
+            model=settings.GEMINI_MODEL,
+            contents=prompt,
+            config=genai.types.GenerateContentConfig(
+                system_instruction="You extract structured summaries of enterprise documents. Be concise and professional. Do not hallucinate or include introductory/outro text. Return ONLY the requested JSON format.",
+                response_mime_type="application/json",
+                response_schema=DocumentSummary,
+                temperature=0.2,
+            ),
+        )
+        import json
+        data = json.loads(response.text)
+        return DocumentSummary(**data)
+    except Exception as e:
+        logger.error(f"Failed to generate summary for {file_path}: {e}")
+        return DocumentSummary(
+            summary=f"Failed to generate summary: {str(e)}",
+            takeaways=["Ensure the file has valid readable content.", "Check your Gemini API quota."],
+            tags=["error"]
+        )
+

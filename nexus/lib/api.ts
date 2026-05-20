@@ -158,8 +158,10 @@ export const api = {
   getMyGroups: () => nexusFetch<OwnCloudGroup[]>("/api/v1/users/me/groups"),
   browseMyFiles: (path: string = "/") =>
     nexusFetch<OwnCloudFile[]>(`/api/v1/users/me/files?path=${encodeURIComponent(path)}`),
-  downloadMyFile: (path: string) =>
-    nexusFetchBlob(`/api/v1/users/me/files/download?path=${encodeURIComponent(path)}`),
+  downloadMyFile: (path: string, preview?: boolean) =>
+    nexusFetchBlob(
+      `/api/v1/users/me/files/download?path=${encodeURIComponent(path)}${preview ? "&preview=true" : ""}`
+    ),
   deleteMyFile: (path: string) =>
     nexusFetch(`/api/v1/users/me/files?path=${encodeURIComponent(path)}`, {
       method: "DELETE",
@@ -169,6 +171,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ path }),
     }),
+  getFileSummary: (path: string, forceRefresh?: boolean) =>
+    nexusFetch<DocumentSummaryResponse>(
+      `/api/v1/users/me/files/summary?path=${encodeURIComponent(path)}${forceRefresh ? "&force_refresh=true" : ""}`
+    ),
+
 
   // ── Admin: Users ────────────────────────────────────────────────────────
   getUsers: () => nexusFetch<User[]>("/api/v1/admin/users/"),
@@ -336,3 +343,11 @@ export interface VectorSearchResponse {
   total: number;
   results: VectorSearchResult[];
 }
+
+export interface DocumentSummaryResponse {
+  indexed: boolean;
+  summary: string | null;
+  takeaways: string[];
+  tags: string[];
+}
+

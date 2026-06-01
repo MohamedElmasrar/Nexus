@@ -864,8 +864,9 @@ function DocumentPreviewModal({
           file.content_type?.includes("json") ||
           ["txt", "md", "json", "csv", "py", "js", "ts", "tsx", "html", "css", "xml", "yaml", "yml"].includes(extension || "");
 
-        if (isPdf || isImage) {
+        if (isImage) {
           setBlobUrl(previewUrl);
+          setLoading(false);
           return;
         }
 
@@ -876,7 +877,11 @@ function DocumentPreviewModal({
           return;
         }
 
-        if (isText) {
+        if (isPdf) {
+          const pdfBlob = new Blob([res.data], { type: "application/pdf" });
+          localUrl = URL.createObjectURL(pdfBlob);
+          setBlobUrl(localUrl);
+        } else if (isText) {
           const txt = await res.data.text();
           setTextContent(txt);
         }

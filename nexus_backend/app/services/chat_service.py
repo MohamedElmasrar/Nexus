@@ -61,6 +61,7 @@ def add_message(
     role: str,
     content: str,
     sources: list[dict] | None = None,
+    images: list[str] | None = None,
 ) -> Message:
     """Add a message to an existing conversation."""
     msg = Message(
@@ -68,6 +69,7 @@ def add_message(
         role=role,
         content=content,
         sources=sources,
+        images=images,
     )
     db.add(msg)
 

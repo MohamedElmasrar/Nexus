@@ -28,8 +28,15 @@ class ConversationUpdate(BaseModel):
     title: str
 
 
+class ImagePayload(BaseModel):
+    mime_type: str
+    data: str  # Base64 encoded image data
+
+
 class AskRequest(BaseModel):
     message: str
+    images: list[ImagePayload] | None = None
+    response_length: str = "medium"
 
 
 class SourceOut(BaseModel):
@@ -42,6 +49,7 @@ class MessageOut(BaseModel):
     role: str
     content: str
     sources: list[SourceOut] | None = None
+    images: list[str] | None = None
     created_at: str
 
 
@@ -122,6 +130,7 @@ def get_conversation(
                 role=m.role,
                 content=m.content,
                 sources=[SourceOut(**s) for s in m.sources] if m.sources else None,
+                images=m.images,
                 created_at=m.created_at.isoformat(),
             )
             for m in conv.messages
@@ -182,17 +191,43 @@ async def ask_question(
     if conv is None:
         raise HTTPException(status_code=404, detail="Conversation not found")
 
-    if not data.message.strip():
+    if not data.message.strip() and not data.images:
         raise HTTPException(status_code=400, detail="Message cannot be empty")
 
+    # Construct image data URLs if provided
+    image_data_urls = []
+    images_payload = []
+    if data.images:
+        for img in data.images:
+            image_data_urls.append(f"data:{img.mime_type};base64,{img.data}")
+            images_payload.append({"mime_type": img.mime_type, "data": img.data})
+
     # 1. Save user message
-    chat_service.add_message(db, conversation_id, "user", data.message)
+    chat_service.add_message(
+        db,
+        conversation_id,
+        "user",
+        data.message,
+        images=image_data_urls if image_data_urls else None,
+    )
 
-    # 2. Search vector store
-    search_results = vector_store.search(data.message, n_results=5)
+    # 2. Search vector store and filter for meaningful chunks (similarity < 0.75 distance)
+    search_results = []
+    if data.message.strip():
+        raw_results = vector_store.search(data.message, n_results=5)
+        # Cosine distance: < 0.75 is relevant, > 0.75 is irrelevant/noise
+        search_results = [r for r in raw_results if r.distance < 0.75]
+        # Fallback to the top match if all were filtered out to avoid loss of context
+        if raw_results and not search_results:
+            search_results = [raw_results[0]]
 
-    # 3. Get LLM response
-    llm_response = llm_service.ask(data.message, search_results)
+    # 3. Get LLM response (multimodal base64 + context + response length setting)
+    llm_response = llm_service.ask(
+        question=data.message,
+        context_results=search_results,
+        images=images_payload if images_payload else None,
+        response_length=data.response_length,
+    )
 
     # 4. Save assistant message with sources
     assistant_msg = chat_service.add_message(
@@ -204,9 +239,10 @@ async def ask_question(
     )
 
     # 5. Auto-title the conversation if it's the first exchange
-    if conv.title == "New conversation" and data.message.strip():
-        short_title = data.message.strip()[:60]
-        if len(data.message.strip()) > 60:
+    if conv.title == "New conversation":
+        title_text = data.message.strip() if data.message.strip() else "Image upload"
+        short_title = title_text[:60]
+        if len(title_text) > 60:
             short_title += "..."
         chat_service.update_conversation_title(db, conversation_id, current_user.username, short_title)
 

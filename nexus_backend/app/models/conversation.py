@@ -60,6 +60,9 @@ class Message(Base):
     sources: Mapped[dict | None] = mapped_column(
         JSON, nullable=True, default=None
     )  # [{ "file_path": "...", "snippet": "..." }, ...]
+    images: Mapped[dict | None] = mapped_column(
+        JSON, nullable=True, default=None
+    )  # ["data:image/png;base64,...", ...]
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),

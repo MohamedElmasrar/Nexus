@@ -17,9 +17,19 @@ const WELCOME_MESSAGE: ChatMessageType = {
   id: "welcome",
   role: "assistant",
   content:
-    "Hello! I'm Nexus AI, your document assistant. I can help you find information across your uploaded documents, summarize content, and answer questions. What would you like to know?",
+    "Hello! I'm Nexus AI, your document assistant. I can help you find information across your uploaded documents, summarize content, and answer questions. You can also upload images to ask questions about them directly! What would you like to know?",
   timestamp: new Date(),
 };
+
+/** Convert a File to a data URL for display in message bubbles */
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export function ChatSidebar() {
   const {
@@ -33,6 +43,41 @@ export function ChatSidebar() {
   const [isTyping, setIsTyping] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Resize state & handlers
+  const [width, setWidth] = useState<number>(400);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+
+  const startResizing = useCallback((mouseDownEvent: React.MouseEvent) => {
+    mouseDownEvent.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+  }, []);
+
+  const resize = useCallback(
+    (mouseMoveEvent: MouseEvent) => {
+      if (isResizing) {
+        // Enforce min width of 280px and max width of 800px
+        const newWidth = Math.max(280, Math.min(800, window.innerWidth - mouseMoveEvent.clientX));
+        setWidth(newWidth);
+      }
+    },
+    [isResizing]
+  );
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener("mousemove", resize);
+      window.addEventListener("mouseup", stopResizing);
+    }
+    return () => {
+      window.removeEventListener("mousemove", resize);
+      window.removeEventListener("mouseup", stopResizing);
+    };
+  }, [isResizing, resize, stopResizing]);
 
   // Sync with SidebarContext
   useEffect(() => {
@@ -59,6 +104,7 @@ export function ChatSidebar() {
             role: m.role,
             content: m.content,
             sources: m.sources?.map((s) => ({ file_path: s.file_path, snippet: s.snippet })),
+            imageUrls: m.images || undefined,
             timestamp: new Date(m.created_at),
           }));
           setMessages(loadedMessages.length > 0 ? loadedMessages : [WELCOME_MESSAGE]);
@@ -84,11 +130,32 @@ export function ChatSidebar() {
     }
   }, [messages, isTyping]);
 
-  const handleSend = useCallback(async (content: string) => {
+  const handleSend = useCallback(async (content: string, images?: File[], responseLength?: "short" | "medium" | "long") => {
+    // Build image data URLs for display in the message bubble
+    let imageUrls: string[] | undefined;
+    let apiImages: { mime_type: string; data: string }[] | undefined;
+
+    if (images && images.length > 0) {
+      imageUrls = await Promise.all(images.map(fileToDataUrl));
+      
+      // Convert Files to base64 payload for Gemini
+      apiImages = await Promise.all(
+        images.map(async (file) => {
+          const dataUrl = await fileToDataUrl(file);
+          const base64Data = dataUrl.split(",")[1];
+          return {
+            mime_type: file.type,
+            data: base64Data,
+          };
+        })
+      );
+    }
+
     const userMessage: ChatMessageType = {
       id: `msg-${Date.now()}`,
       role: "user",
       content,
+      imageUrls,
       timestamp: new Date(),
     };
 
@@ -110,8 +177,8 @@ export function ChatSidebar() {
         }
       }
 
-      // Ask the question via the backend
-      const res = await api.askQuestion(currentConvId!, content);
+      // Ask the question via the backend, passing the message, base64 images, and selected length
+      const res = await api.askQuestion(currentConvId!, content, apiImages, responseLength);
 
       if (res.ok && res.data) {
         const assistantMessage: ChatMessageType = {
@@ -163,13 +230,26 @@ export function ChatSidebar() {
 
       {/* Chat panel */}
       <aside
+        style={{
+          width: isChatOpen ? `${width}px` : "0px",
+        }}
         className={cn(
-          "flex h-full flex-col border-l border-border bg-background transition-all duration-300 ease-in-out",
-          isChatOpen
-            ? "w-[var(--chat-width)] opacity-100"
-            : "w-0 opacity-0 overflow-hidden"
+          "flex h-full flex-col border-l border-border bg-background transition-all ease-in-out relative",
+          isChatOpen ? "opacity-100" : "opacity-0 overflow-hidden",
+          isResizing ? "transition-none" : "duration-300"
         )}
       >
+        {/* Resize Handle */}
+        {isChatOpen && (
+          <div
+            onMouseDown={startResizing}
+            className={cn(
+              "absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-brand/40 active:bg-brand/60 z-50 transition-colors",
+              isResizing && "bg-brand/60"
+            )}
+            title="Drag to resize chat panel"
+          />
+        )}
         {/* Header */}
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-border px-4">
           <div className="flex items-center gap-3">
@@ -213,7 +293,7 @@ export function ChatSidebar() {
                 </div>
                 <p className="text-xs text-muted-foreground/60">
                   Nexus uses AI to help you find and understand your documents.
-                  Ask anything about your files.
+                  Ask anything about your files or attach images to ask questions.
                 </p>
               </div>
 

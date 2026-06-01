@@ -14,6 +14,7 @@ export interface ChatMessageType {
   role: "user" | "assistant";
   content: string;
   sources?: SourceAttribution[];
+  imageUrls?: string[];
   timestamp: Date;
 }
 
@@ -72,7 +73,21 @@ export function MessageBubble({ message }: MessageBubbleProps) {
           )}
         >
           {isUser ? (
-            message.content
+            <>
+              {message.imageUrls && message.imageUrls.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-1.5">
+                  {message.imageUrls.map((url, idx) => (
+                    <img
+                      key={idx}
+                      src={url}
+                      alt={`Attached ${idx + 1}`}
+                      className="max-h-32 max-w-[200px] rounded-lg object-cover ring-1 ring-white/20"
+                    />
+                  ))}
+                </div>
+              )}
+              {message.content && <span>{message.content}</span>}
+            </>
           ) : (
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {message.content}

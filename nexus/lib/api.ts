@@ -289,10 +289,15 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ title }),
     }),
-  askQuestion: (conversationId: number, message: string) =>
+  askQuestion: (
+    conversationId: number,
+    message: string,
+    images?: { mime_type: string; data: string }[],
+    responseLength?: string
+  ) =>
     nexusFetch<ChatAskResponse>(`/api/v1/chat/conversations/${conversationId}/ask`, {
       method: "POST",
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, images, response_length: responseLength }),
     }),
 };
 
@@ -308,6 +313,7 @@ export interface ChatMessage {
   role: "user" | "assistant";
   content: string;
   sources?: ChatSource[] | null;
+  images?: string[] | null;
   created_at: string;
 }
 

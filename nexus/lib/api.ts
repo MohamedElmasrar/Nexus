@@ -301,30 +301,30 @@ export const api = {
     }),
 
   // User Management
-  createUser: (data: any) =>
-    nexusFetch<any>("/api/v1/admin/users/", {
+  createUser: (data: UserCreateData) =>
+    nexusFetch<User>("/api/v1/admin/users/", {
       method: "POST",
       body: JSON.stringify(data),
     }),
   deleteUser: (username: string) =>
-    nexusFetch<any>(`/api/v1/admin/users/${encodeURIComponent(username)}`, {
+    nexusFetch<{ detail: string }>(`/api/v1/admin/users/${encodeURIComponent(username)}`, {
       method: "DELETE",
     }),
 
   // Projects
   listProjects: () =>
-    nexusFetch<any[]>("/api/v1/projects/"),
+    nexusFetch<Project[]>("/api/v1/projects/"),
   createProject: (data: { name: string; description: string; group_id: string }) =>
-    nexusFetch<any>("/api/v1/projects/", {
+    nexusFetch<Project>("/api/v1/projects/", {
       method: "POST",
       body: JSON.stringify(data),
     }),
   deleteProject: (id: number) =>
-    nexusFetch<any>(`/api/v1/projects/${id}`, {
+    nexusFetch<{ detail: string }>(`/api/v1/projects/${id}`, {
       method: "DELETE",
     }),
   getProject: (id: number) =>
-    nexusFetch<any>(`/api/v1/projects/${id}`),
+    nexusFetch<ProjectDetail>(`/api/v1/projects/${id}`),
   browseProjectFiles: (id: number, path: string = "/") =>
     nexusFetch<OwnCloudFile[]>(`/api/v1/projects/${id}/files?path=${encodeURIComponent(path)}`),
   uploadProjectFile: (id: number, path: string, formData: FormData) =>
@@ -333,40 +333,40 @@ export const api = {
       body: formData,
     }),
   createProjectFolder: (id: number, path: string) =>
-    nexusFetch<any>(`/api/v1/projects/${id}/files/folder`, {
+    nexusFetch<{ detail: string }>(`/api/v1/projects/${id}/files/folder`, {
       method: "POST",
       body: JSON.stringify({ path }),
     }),
 
   // Favorites
   listFavorites: () =>
-    nexusFetch<any[]>("/api/v1/users/me/favorites"),
+    nexusFetch<Favorite[]>("/api/v1/users/me/favorites"),
   addFavorite: (filePath: string, fileName: string) =>
-    nexusFetch<any>("/api/v1/users/me/favorites", {
+    nexusFetch<Favorite>("/api/v1/users/me/favorites", {
       method: "POST",
       body: JSON.stringify({ file_path: filePath, file_name: fileName }),
     }),
   removeFavorite: (filePath: string) =>
-    nexusFetch<any>(`/api/v1/users/me/favorites?file_path=${encodeURIComponent(filePath)}`, {
+    nexusFetch<{ detail: string }>(`/api/v1/users/me/favorites?file_path=${encodeURIComponent(filePath)}`, {
       method: "DELETE",
     }),
 
   // Recent Views
   listRecentViews: (limit: number = 20) =>
-    nexusFetch<any[]>(`/api/v1/users/me/recent-views?limit=${limit}`),
+    nexusFetch<RecentView[]>(`/api/v1/users/me/recent-views?limit=${limit}`),
   recordView: (filePath: string, fileName: string) =>
-    nexusFetch<any>("/api/v1/users/me/recent-views", {
+    nexusFetch<RecentView>("/api/v1/users/me/recent-views", {
       method: "POST",
       body: JSON.stringify({ file_path: filePath, file_name: fileName }),
     }),
   clearRecentViews: () =>
-    nexusFetch<any>("/api/v1/users/me/recent-views", {
+    nexusFetch<{ detail: string }>("/api/v1/users/me/recent-views", {
       method: "DELETE",
     }),
 
   // Content Search
   searchMyFiles: (query: string, n: number = 10) =>
-    nexusFetch<{ query: string; results: any[] }>(
+    nexusFetch<{ query: string; results: SearchResultItem[] }>(
       `/api/v1/users/me/files/search?q=${encodeURIComponent(query)}&n=${n}`
     ),
 };
@@ -425,5 +425,48 @@ export interface DocumentSummaryResponse {
   summary: string | null;
   takeaways: string[];
   tags: string[];
+}
+
+export interface UserCreateData {
+  username: string;
+  password?: string;
+  display_name?: string;
+  email?: string;
+}
+
+export interface Project {
+  id: number;
+  name: string;
+  description: string;
+  group_id: string;
+  root_path: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ProjectDetail extends Project {
+  members: string[];
+}
+
+export interface Favorite {
+  id: number;
+  file_path: string;
+  file_name: string;
+  created_at: string | null;
+}
+
+export interface RecentView {
+  id: number;
+  file_path: string;
+  file_name: string;
+  viewed_at: string | null;
+}
+
+export interface SearchResultItem {
+  file_path: string;
+  file_name: string;
+  snippet: string;
+  distance: number;
 }
 

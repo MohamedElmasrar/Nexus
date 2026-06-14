@@ -26,7 +26,6 @@ import {
   AlertCircle,
   Clock,
   Info,
-  Calendar,
   Eye,
   RefreshCw,
   Star,
@@ -117,7 +116,7 @@ export default function DashboardPage() {
 
 function DashboardContent() {
   const searchParams = useSearchParams();
-  const { user, isLoading: authLoading, isLoggedIn } = useAuth();
+  const { isLoading: authLoading, isLoggedIn } = useAuth();
   const router = useRouter();
 
   const [currentPath, setCurrentPath] = useState<string>(
@@ -146,7 +145,7 @@ function DashboardContent() {
     try {
       const res = await api.listFavorites();
       if (res.ok && res.data) {
-        setFavorites(res.data.map((f: any) => f.file_path));
+        setFavorites(res.data.map((f) => f.file_path));
       }
     } catch {
       // ignore
@@ -175,7 +174,7 @@ function DashboardContent() {
 
   useEffect(() => {
     const nextPath = searchParams.get("path") || "/";
-    setCurrentPath(nextPath);
+    Promise.resolve().then(() => setCurrentPath(nextPath));
   }, [searchParams]);
 
   const loadFiles = useCallback(async (path: string) => {
@@ -214,8 +213,9 @@ function DashboardContent() {
         return a.name.localeCompare(b.name);
       });
       setFiles(sortedFiles);
-    } catch (e: any) {
-      setError(e.message || "Failed to load files");
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || "Failed to load files");
     } finally {
       setLoading(false);
     }
@@ -249,14 +249,18 @@ function DashboardContent() {
 
   useEffect(() => {
     if (!authLoading && isLoggedIn) {
-      void loadFiles(currentPath);
-      void loadFavorites();
+      Promise.resolve().then(() => {
+        void loadFiles(currentPath);
+        void loadFavorites();
+      });
     }
   }, [currentPath, authLoading, isLoggedIn, loadFiles, loadFavorites]);
 
   useEffect(() => {
-    setSelectedFile(null);
-    setPreviewTarget(null);
+    Promise.resolve().then(() => {
+      setSelectedFile(null);
+      setPreviewTarget(null);
+    });
   }, [currentPath]);
 
   const navigateTo = (path: string) => {
@@ -606,8 +610,9 @@ function FileSidePanel({
       } else {
         setError("Failed to load summary.");
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to load summary.");
+    } catch (err) {
+      const errorVal = err as Error;
+      setError(errorVal.message || "Failed to load summary.");
     } finally {
       setLoading(false);
     }
@@ -615,7 +620,7 @@ function FileSidePanel({
 
   useEffect(() => {
     if (activeTab === "ai") {
-      void fetchSummary();
+      Promise.resolve().then(() => void fetchSummary());
     }
   }, [activeTab, fetchSummary]);
 
@@ -630,8 +635,9 @@ function FileSidePanel({
       } else {
         setError("Failed to index file. Make sure file content is readable.");
       }
-    } catch (err: any) {
-      setError(err.message || "Error indexing document.");
+    } catch (err) {
+      const errorVal = err as Error;
+      setError(errorVal.message || "Error indexing document.");
     } finally {
       setIndexing(false);
     }
@@ -886,13 +892,10 @@ function DocumentPreviewModal({
   onDelete,
 }: DocumentPreviewModalProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const previewUrl = `/api/nexus?path=${encodeURIComponent(
-    `/api/v1/users/me/files/download?path=${encodeURIComponent(file.path)}&preview=true`
-  )}`;
 
   useEffect(() => {
     let active = true;
@@ -934,9 +937,10 @@ function DocumentPreviewModal({
           const txt = await res.data.text();
           setTextContent(txt);
         }
-      } catch (err: any) {
+      } catch (err) {
+        const errorVal = err as Error;
         if (active) {
-          setError(err.message || "Failed to load document preview.");
+          setError(errorVal.message || "Failed to load document preview.");
         }
       } finally {
         if (active) {

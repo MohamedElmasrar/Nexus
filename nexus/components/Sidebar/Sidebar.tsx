@@ -8,7 +8,7 @@ import { useSidebar } from "@/components/Providers/SidebarProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { NavItem } from "./NavItem";
 import { Separator } from "@/components/ui/separator";
-import { api } from "@/lib/api";
+import { api, type Project, type Favorite, type RecentView, type SearchResultItem } from "@/lib/api";
 import {
   Brain,
   FolderOpen,
@@ -36,9 +36,9 @@ export function Sidebar() {
   const router = useRouter();
 
   // Dynamic lists state
-  const [projects, setProjects] = useState<any[]>([]);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [recentViews, setRecentViews] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [favorites, setFavorites] = useState<Favorite[]>([]);
+  const [recentViews, setRecentViews] = useState<RecentView[]>([]);
 
   // Collapse states for subsections
   const [isProjectsOpen, setIsProjectsOpen] = useState(true);
@@ -47,15 +47,12 @@ export function Sidebar() {
 
   // Search state & Debounce
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResultItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
   useEffect(() => {
     if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      setShowSearchResults(false);
       return;
     }
 
@@ -70,7 +67,7 @@ export function Sidebar() {
         } else {
           setSearchResults([]);
         }
-      } catch (e) {
+      } catch {
         setSearchResults([]);
       } finally {
         setIsSearching(false);
@@ -99,7 +96,7 @@ export function Sidebar() {
           if (favRes.ok) setFavorites(favRes.data || []);
           if (recRes.ok) setRecentViews(recRes.data || []);
         }
-      } catch (err) {
+      } catch {
         // fail silently
       }
     };
@@ -149,7 +146,15 @@ export function Sidebar() {
               type="text"
               placeholder="Search file contents..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSearchQuery(val);
+                if (!val.trim()) {
+                  setSearchResults([]);
+                  setIsSearching(false);
+                  setShowSearchResults(false);
+                }
+              }}
               onFocus={() => {
                 if (searchQuery.trim()) setShowSearchResults(true);
               }}
@@ -170,6 +175,8 @@ export function Sidebar() {
               <button
                 onClick={() => {
                   setSearchQuery("");
+                  setSearchResults([]);
+                  setIsSearching(false);
                   setShowSearchResults(false);
                 }}
                 className="absolute right-3 text-muted-foreground hover:text-foreground cursor-pointer p-0.5 rounded hover:bg-muted"

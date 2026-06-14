@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
-import { api, type OwnCloudFile } from "@/lib/api";
+import { api, type OwnCloudFile, type ProjectDetail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -101,7 +101,7 @@ function ProjectContent({ projectId }: { projectId: number }) {
   const router = useRouter();
 
   // Project data states
-  const [project, setProject] = useState<any | null>(null);
+  const [project, setProject] = useState<ProjectDetail | null>(null);
   const [projectLoading, setProjectLoading] = useState(true);
 
   // File explorer states
@@ -134,8 +134,9 @@ function ProjectContent({ projectId }: { projectId: number }) {
       } else {
         setError("Project not found.");
       }
-    } catch (e: any) {
-      setError(e.message || "Failed to load project details");
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || "Failed to load project details");
     } finally {
       setProjectLoading(false);
     }
@@ -160,8 +161,9 @@ function ProjectContent({ projectId }: { projectId: number }) {
       } else {
         setError("Failed to load project files.");
       }
-    } catch (e: any) {
-      setError(e.message || "Failed to fetch files");
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || "Failed to fetch files");
     } finally {
       setFilesLoading(false);
     }
@@ -220,8 +222,9 @@ function ProjectContent({ projectId }: { projectId: number }) {
       setShowNewFolder(false);
       setNewFolderName("");
       await loadFiles(currentPath);
-    } catch (e: any) {
-      alert(e.message || "Failed to create folder");
+    } catch (e) {
+      const err = e as Error;
+      alert(err.message || "Failed to create folder");
     } finally {
       setCreatingFolder(false);
     }
@@ -239,8 +242,9 @@ function ProjectContent({ projectId }: { projectId: number }) {
         await api.uploadProjectFile(projectId, currentPath, formData);
       }
       await loadFiles(currentPath);
-    } catch (e: any) {
-      alert(e.message || "Failed to upload file(s)");
+    } catch (e) {
+      const err = e as Error;
+      alert(err.message || "Failed to upload file(s)");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

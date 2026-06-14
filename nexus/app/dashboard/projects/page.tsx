@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { api, type OwnCloudGroup } from "@/lib/api";
+import { api, type OwnCloudGroup, type Project } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,7 +26,7 @@ export default function ProjectsPage() {
   const router = useRouter();
   const { user, isLoading: authLoading, isLoggedIn } = useAuth();
 
-  const [projects, setProjects] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export default function ProjectsPage() {
   const [creating, setCreating] = useState(false);
 
   // Delete states
-  const [projectToDelete, setProjectToDelete] = useState<any | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Load projects
@@ -55,8 +55,9 @@ export default function ProjectsPage() {
       } else {
         setError("Failed to load projects.");
       }
-    } catch (e: any) {
-      setError(e.message || "An error occurred");
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -108,10 +109,11 @@ export default function ProjectsPage() {
         setProjectDescription("");
         void loadProjects();
       } else {
-        alert(res.data?.detail || "Failed to create project.");
+        alert((res.data as { detail?: string })?.detail || "Failed to create project.");
       }
-    } catch (e: any) {
-      alert(e.message || "Failed to create project");
+    } catch (e) {
+      const err = e as Error;
+      alert(err.message || "Failed to create project");
     } finally {
       setCreating(false);
     }
@@ -128,8 +130,9 @@ export default function ProjectsPage() {
       } else {
         alert(res.data?.detail || "Failed to delete project");
       }
-    } catch (e: any) {
-      alert(e.message || "Failed to delete project");
+    } catch (e) {
+      const err = e as Error;
+      alert(err.message || "Failed to delete project");
     } finally {
       setDeleting(false);
     }

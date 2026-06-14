@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, type SearchResultItem } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -49,7 +49,7 @@ function SearchContent() {
 
   const initialQuery = searchParams.get("q") || "";
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<SearchResultItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,8 +67,9 @@ function SearchContent() {
       } else {
         setError("Failed to fetch search results.");
       }
-    } catch (e: any) {
-      setError(e.message || "An error occurred during search");
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message || "An error occurred during search");
     } finally {
       setLoading(false);
     }

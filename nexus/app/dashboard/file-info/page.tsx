@@ -13,17 +13,13 @@ import {
   FileSpreadsheet,
   FileImage,
   File,
-  Folder,
   Sparkles,
   Tag,
-  Clock,
   Info,
   AlertCircle,
   RefreshCw,
   Star,
-  Calendar,
   HardDrive,
-  Hash,
   Eye,
   CheckCircle,
 } from "lucide-react";
@@ -71,7 +67,6 @@ function FileInfoContent() {
   const ext = getExtension(fileName);
 
   const [fileData, setFileData] = useState<OwnCloudFile | null>(null);
-  const [loading, setLoading] = useState(true);
   const [summaryData, setSummaryData] = useState<DocumentSummaryResponse | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -86,10 +81,6 @@ function FileInfoContent() {
   const [previewLoading, setPreviewLoading] = useState(true);
   const [previewError, setPreviewError] = useState<string | null>(null);
 
-  const previewUrl = `/api/nexus?path=${encodeURIComponent(
-    `/api/v1/users/me/files/download?path=${encodeURIComponent(filePath)}&preview=true`
-  )}`;
-
   const isPdf = ext === "pdf";
   const isImage = ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext);
   const isText = ["txt", "md", "json", "csv", "py", "js", "ts", "tsx", "html", "css", "xml", "yaml", "yml"].includes(ext);
@@ -97,14 +88,12 @@ function FileInfoContent() {
   // Load file metadata
   useEffect(() => {
     if (!filePath) return;
-    setLoading(true);
     const parentPath = filePath.substring(0, filePath.lastIndexOf("/")) || "/";
     api.browseMyFiles(parentPath).then((res) => {
       if (res.ok && Array.isArray(res.data)) {
         const found = res.data.find((f: OwnCloudFile) => f.path === filePath);
         if (found) setFileData(found);
       }
-      setLoading(false);
     });
   }, [filePath]);
 
@@ -113,12 +102,12 @@ function FileInfoContent() {
     if (!filePath) return;
     let active = true;
     let localUrl: string | null = null;
-    setPreviewLoading(true);
-    setPreviewError(null);
-    setBlobUrl(null);
-    setTextContent(null);
 
     const load = async () => {
+      setPreviewLoading(true);
+      setPreviewError(null);
+      setBlobUrl(null);
+      setTextContent(null);
       try {
         const res = await api.downloadMyFile(filePath, true);
         if (!active) return;
@@ -137,8 +126,9 @@ function FileInfoContent() {
         } else if (isText) {
           setTextContent(await res.data.text());
         }
-      } catch (err: any) {
-        if (active) setPreviewError(err.message || "Preview failed");
+      } catch (err) {
+        const errorVal = err as Error;
+        if (active) setPreviewError(errorVal.message || "Preview failed");
       } finally {
         if (active) setPreviewLoading(false);
       }
@@ -158,23 +148,25 @@ function FileInfoContent() {
       const res = await api.getFileSummary(filePath, forceRefresh);
       if (res.ok && res.data) setSummaryData(res.data);
       else setSummaryError("Failed to load summary.");
-    } catch (err: any) {
-      setSummaryError(err.message || "Failed to load summary.");
+    } catch (err) {
+      const errorVal = err as Error;
+      setSummaryError(errorVal.message || "Failed to load summary.");
     } finally {
       setSummaryLoading(false);
     }
   }, [filePath]);
 
   useEffect(() => {
-    if (filePath) void fetchSummary();
+    if (filePath) {
+      Promise.resolve().then(() => void fetchSummary());
+    }
   }, [filePath, fetchSummary]);
 
-  // Check favorite status
   useEffect(() => {
     if (!filePath) return;
-    api.listFavorites().then((res: any) => {
+    api.listFavorites().then((res) => {
       if (res.ok && Array.isArray(res.data)) {
-        setIsFavorite(res.data.some((f: any) => f.file_path === filePath));
+        setIsFavorite(res.data.some((f) => f.file_path === filePath));
       }
     });
   }, [filePath]);
@@ -193,8 +185,9 @@ function FileInfoContent() {
       const res = await api.indexFile(filePath);
       if (res.ok) await fetchSummary();
       else setSummaryError("Failed to index file.");
-    } catch (err: any) {
-      setSummaryError(err.message || "Error indexing.");
+    } catch (err) {
+      const errorVal = err as Error;
+      setSummaryError(errorVal.message || "Error indexing.");
     } finally {
       setIndexing(false);
     }

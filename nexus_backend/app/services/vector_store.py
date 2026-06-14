@@ -48,20 +48,30 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
             return []
         try:
             from google.genai import types
-            contents = [
-                types.Content(parts=[types.Part.from_text(text=doc)])
-                for doc in input
-            ]
-            response = self.client.models.embed_content(
-                model=self.model_name,
-                contents=contents,
-            )
-            if hasattr(response, "embeddings"):
-                return [e.values for e in response.embeddings]
-            elif hasattr(response, "embedding"):
-                return [response.embedding.values]
-            else:
-                raise ValueError("Unexpected response format from Gemini embedding API")
+            
+            # Gemini embedding batch size limit is 100
+            batch_size = 100
+            all_embeddings = []
+            
+            for i in range(0, len(input), batch_size):
+                batch = input[i:i + batch_size]
+                contents = [
+                    types.Content(parts=[types.Part.from_text(text=doc)])
+                    for doc in batch
+                ]
+                response = self.client.models.embed_content(
+                    model=self.model_name,
+                    contents=contents,
+                )
+                if hasattr(response, "embeddings"):
+                    batch_embeddings = [e.values for e in response.embeddings]
+                elif hasattr(response, "embedding"):
+                    batch_embeddings = [response.embedding.values]
+                else:
+                    raise ValueError("Unexpected response format from Gemini embedding API")
+                all_embeddings.extend(batch_embeddings)
+                
+            return all_embeddings
         except Exception as e:
             logger.error(f"Gemini embedding generation failed: {e}")
             raise e

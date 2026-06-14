@@ -226,7 +226,21 @@ function FileInfoContent() {
     if (confirm(`Are you sure you want to delete "${fileName}"? This action cannot be undone.`)) {
       const res = await api.deleteMyFile(filePath);
       if (res.ok) {
-        router.back();
+        const from = searchParams.get("from");
+        const q = searchParams.get("q");
+        const projectId = searchParams.get("projectId");
+        
+        if (from === "search" && q) {
+          router.push(`/dashboard/search?q=${encodeURIComponent(q)}`);
+        } else {
+          const parentPath = filePath.substring(0, filePath.lastIndexOf("/")) || "/";
+          if (projectId) {
+            router.push(`/dashboard/projects/${projectId}?path=${encodeURIComponent(parentPath)}`);
+          } else {
+            router.push(`/dashboard?path=${encodeURIComponent(parentPath)}`);
+          }
+        }
+        router.refresh();
       } else {
         alert("Failed to delete file.");
       }

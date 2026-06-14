@@ -195,7 +195,7 @@ function SearchContent() {
               {results.map((r, idx) => (
                 <div
                   key={idx}
-                  onClick={() => router.push(`/dashboard/file-info?path=${encodeURIComponent(r.file_path)}`)}
+                  onClick={() => router.push(`/dashboard/file-info?path=${encodeURIComponent(r.file_path)}&from=search&q=${encodeURIComponent(query)}`)}
                   className="group flex flex-col md:flex-row justify-between gap-4 p-5 rounded-2xl border border-border/60 bg-card hover:bg-muted/30 hover:border-brand/20 transition-all cursor-pointer shadow-sm hover:shadow-md duration-200"
                 >
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
@@ -231,7 +231,7 @@ function SearchContent() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        router.push(`/dashboard/file-info?path=${encodeURIComponent(r.file_path)}`);
+                        router.push(`/dashboard/file-info?path=${encodeURIComponent(r.file_path)}&from=search&q=${encodeURIComponent(query)}`);
                       }}
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-brand hover:bg-muted"
                       title="View File Details"

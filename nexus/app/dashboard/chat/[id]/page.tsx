@@ -21,6 +21,8 @@ import {
   MessageSquare,
   Pencil,
   Check,
+  X,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +60,7 @@ function ConversationContent({ conversationId }: { conversationId: number }) {
   // Conversations list (left side)
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
   const [listLoading, setListLoading] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // Active conversation (main)
   const [messages, setMessages] = useState<ChatMessageType[]>([WELCOME_MESSAGE]);
@@ -246,19 +249,41 @@ function ConversationContent({ conversationId }: { conversationId: number }) {
   return (
     <div className="flex h-full overflow-hidden bg-background">
       {/* Left Sidebar: Conversations Switcher */}
-      <aside className="w-72 shrink-0 border-r border-border bg-card/20 flex flex-col h-full overflow-hidden relative">
+      <aside
+        className={cn(
+          "w-72 shrink-0 border-r border-border bg-card/20 flex flex-col h-full overflow-hidden relative transition-all duration-200",
+          "hidden md:flex",
+          isHistoryOpen ? "flex fixed inset-y-0 left-0 z-50 bg-background shadow-2xl animate-in slide-in-from-left duration-200" : "hidden"
+        )}
+      >
         <div className="p-4 border-b border-border flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <Button
+              onClick={() => {
+                setIsHistoryOpen(false);
+                router.push("/dashboard/chat");
+              }}
+              variant="ghost"
+              size="sm"
+              className="w-fit gap-1 text-muted-foreground hover:text-foreground p-0 h-auto"
+            >
+              <ArrowLeft size={14} />
+              Back to list
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsHistoryOpen(false)}
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground md:hidden"
+            >
+              <X size={16} />
+            </Button>
+          </div>
           <Button
-            onClick={() => router.push("/dashboard/chat")}
-            variant="ghost"
-            size="sm"
-            className="w-fit gap-1 text-muted-foreground hover:text-foreground p-0 h-auto"
-          >
-            <ArrowLeft size={14} />
-            Back to list
-          </Button>
-          <Button
-            onClick={handleNewChat}
+            onClick={() => {
+              setIsHistoryOpen(false);
+              void handleNewChat();
+            }}
             size="sm"
             className="w-full gap-2 bg-brand text-brand-foreground hover:bg-brand/90 shadow-sm cursor-pointer"
           >
@@ -285,7 +310,10 @@ function ConversationContent({ conversationId }: { conversationId: number }) {
               conversations.map((chat) => (
                 <div
                   key={chat.id}
-                  onClick={() => router.push(`/dashboard/chat/${chat.id}`)}
+                  onClick={() => {
+                    setIsHistoryOpen(false);
+                    router.push(`/dashboard/chat/${chat.id}`);
+                  }}
                   className={cn(
                     "group relative flex items-center justify-between p-2.5 rounded-lg border border-transparent hover:bg-muted/40 cursor-pointer transition-all duration-200",
                     chat.id === conversationId && "bg-brand/10 border-brand/10 text-brand hover:bg-brand/10"
@@ -317,19 +345,39 @@ function ConversationContent({ conversationId }: { conversationId: number }) {
         </ScrollArea>
       </aside>
 
+      {/* Mobile Drawer Backdrop */}
+      {isHistoryOpen && (
+        <div
+          onClick={() => setIsHistoryOpen(false)}
+          className="fixed inset-0 z-40 bg-black/45 backdrop-blur-xs md:hidden"
+        />
+      )}
+
       {/* Main Area: Chat Window */}
       <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
         {/* Top Header */}
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-border px-6">
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push("/dashboard/chat")}
-              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground md:hidden"
-            >
-              <ArrowLeft size={16} />
-            </Button>
+            <div className="flex items-center gap-1.5 md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push("/dashboard/chat")}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                title="Back to list"
+              >
+                <ArrowLeft size={16} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsHistoryOpen(true)}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                title="Chat History"
+              >
+                <History size={16} />
+              </Button>
+            </div>
             {isEditingTitle ? (
               <div className="flex items-center gap-2 max-w-md w-full">
                 <Input

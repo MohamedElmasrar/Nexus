@@ -209,6 +209,7 @@ function ProjectContent({ projectId }: { projectId: number }) {
     setIsDeleting(true);
     try {
       await api.deleteMyFile(deleteTarget.path);
+      setFiles((prev) => prev.filter((f) => f.path !== deleteTarget.path));
       await loadFiles(currentPath);
     } finally {
       setIsDeleting(false);
@@ -499,7 +500,7 @@ function ProjectContent({ projectId }: { projectId: number }) {
               {files.map((file) => (
                 <tr
                   key={file.path}
-                  onClick={() => file.is_directory ? handleFolderClick(file) : router.push(`/dashboard/file-info?path=${encodeURIComponent(file.path)}`)}
+                  onClick={() => file.is_directory ? handleFolderClick(file) : router.push(`/dashboard/file-info?path=${encodeURIComponent(file.path)}&projectId=${projectId}`)}
                   className={cn(
                     "border-b border-border/50 transition-colors cursor-pointer hover:bg-muted/20",
                     file.is_directory && "hover:bg-muted/40"
@@ -526,7 +527,7 @@ function ProjectContent({ projectId }: { projectId: number }) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              router.push(`/dashboard/file-info?path=${encodeURIComponent(file.path)}`);
+                              router.push(`/dashboard/file-info?path=${encodeURIComponent(file.path)}&projectId=${projectId}`);
                             }}
                             className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-brand"
                             title="View File Details"

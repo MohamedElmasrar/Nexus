@@ -10,6 +10,8 @@ interface SidebarContextValue {
   activeConversationId: number | null;
   setActiveConversationId: (id: number | null) => void;
   openConversation: (id: number) => void;
+  isMobileOpen: boolean;
+  setIsMobileOpen: (open: boolean) => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue>({
@@ -20,6 +22,8 @@ const SidebarContext = createContext<SidebarContextValue>({
   activeConversationId: null,
   setActiveConversationId: () => {},
   openConversation: () => {},
+  isMobileOpen: false,
+  setIsMobileOpen: () => {},
 });
 
 export function useSidebar() {
@@ -29,6 +33,7 @@ export function useSidebar() {
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(true);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   
   const [activeConversationId, setActiveConversationId] = useState<number | null>(null);
 
@@ -50,6 +55,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
         activeConversationId,
         setActiveConversationId,
         openConversation,
+        isMobileOpen,
+        setIsMobileOpen,
       }}
     >
       {children}

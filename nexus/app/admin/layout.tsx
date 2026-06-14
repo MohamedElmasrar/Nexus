@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ import {
   Loader2,
   ShieldCheck,
   Search,
+  Menu,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -35,6 +36,13 @@ export default function AdminLayout({
   const { user, isLoading, isLoggedIn } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      setIsMobileOpen(false);
+    });
+  }, [pathname]);
 
   useEffect(() => {
     if (!isLoading && (!isLoggedIn || user?.role !== "admin")) {
@@ -59,23 +67,46 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden">
+    <div className="flex h-full w-full overflow-hidden relative">
+      {/* Mobile Backdrop for Admin Sidebar */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Admin Sidebar */}
-      <aside className="hidden md:flex h-full w-[260px] flex-col border-r border-sidebar-border bg-sidebar">
+      <aside
+        className={cn(
+          "flex h-full w-[260px] flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
+          "fixed inset-y-0 left-0 z-50 md:relative md:z-0",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}
+      >
         {/* Brand Header */}
-        <div className="flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border px-4">
-          <div className="brain-glow flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-brand-foreground">
-            <Brain size={18} strokeWidth={2.2} />
+        <div className="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-4">
+          <div className="flex items-center gap-3">
+            <div className="brain-glow flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-brand-foreground">
+              <Brain size={18} strokeWidth={2.2} />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold tracking-tight text-foreground">
+                Nexus
+              </span>
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <ShieldCheck size={10} />
+                Admin Panel
+              </span>
+            </div>
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-foreground">
-              Nexus
-            </span>
-            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-              <ShieldCheck size={10} />
-              Admin Panel
-            </span>
-          </div>
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+            title="Close sidebar"
+          >
+            <ArrowLeft size={16} />
+          </button>
         </div>
 
         {/* Navigation */}
@@ -126,9 +157,24 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>
-      </main>
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Mobile Header */}
+        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card px-4 md:hidden">
+          <button
+            onClick={() => setIsMobileOpen(true)}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+            title="Open admin navigation"
+          >
+            <Menu size={20} />
+          </button>
+          <span className="text-sm font-bold tracking-tight text-foreground">Nexus Admin</span>
+          <div className="w-9 h-9" />
+        </header>
+
+        <main className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="mx-auto max-w-6xl px-6 py-8">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

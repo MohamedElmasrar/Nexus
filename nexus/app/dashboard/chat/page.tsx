@@ -86,7 +86,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-full overflow-hidden bg-background">
       {/* Left Sidebar: Conversations Switcher */}
-      <aside className="w-72 shrink-0 border-r border-border bg-card/20 flex flex-col h-full overflow-hidden relative">
+      <aside className="hidden md:flex w-72 shrink-0 border-r border-border bg-card/20 flex-col h-full overflow-hidden relative">
         <div className="p-4 border-b border-border">
           <Button
             onClick={handleCreate}

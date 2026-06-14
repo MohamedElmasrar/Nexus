@@ -226,6 +226,7 @@ function DashboardContent() {
     setIsDeleting(true);
     try {
       await api.deleteMyFile(deleteTarget.path);
+      setFiles((prev) => prev.filter((f) => f.path !== deleteTarget.path));
       await loadFiles(currentPath);
     } finally {
       setIsDeleting(false);

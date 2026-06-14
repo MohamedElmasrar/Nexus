@@ -225,7 +225,7 @@ export function ChatSidebar() {
       {!isChatOpen && (
         <button
           onClick={toggleChat}
-          className="fixed right-4 bottom-8 z-50 flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-lg transition-all hover:bg-muted hover:text-foreground hover:shadow-xl"
+          className="fixed right-4 bottom-8 z-50 hidden md:flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground shadow-lg transition-all hover:bg-muted hover:text-foreground hover:shadow-xl"
           title="Open Nexus Chat"
         >
           <PanelRightOpen size={18} />
@@ -238,7 +238,7 @@ export function ChatSidebar() {
           width: isChatOpen ? `${width}px` : "0px",
         }}
         className={cn(
-          "flex h-full flex-col border-l border-border bg-background transition-all ease-in-out relative",
+          "hidden md:flex h-full flex-col border-l border-border bg-background transition-all ease-in-out relative",
           isChatOpen ? "opacity-100" : "opacity-0 overflow-hidden",
           isResizing ? "transition-none" : "duration-300"
         )}

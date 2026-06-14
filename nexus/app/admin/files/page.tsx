@@ -279,6 +279,7 @@ function AdminFilesContent() {
     setIsDeleting(true);
     try {
       await api.adminDeleteFile(deleteTarget.path);
+      setFiles((prev) => prev.filter((f) => f.path !== deleteTarget.path));
       await loadFiles(currentPath);
     } finally {
       setIsDeleting(false);

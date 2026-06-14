@@ -30,10 +30,14 @@ import {
 } from "lucide-react";
 
 export function Sidebar() {
-  const { isCollapsed, toggle } = useSidebar();
+  const { isCollapsed, toggle, isMobileOpen, setIsMobileOpen } = useSidebar();
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname, setIsMobileOpen]);
 
   // Dynamic lists state
   const [projects, setProjects] = useState<Project[]>([]);
@@ -111,33 +115,56 @@ export function Sidebar() {
   }, [isCollapsed, pathname]);
 
   return (
-    <aside
-      className={cn(
-        "group relative flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
-        isCollapsed ? "w-[var(--sidebar-collapsed-width)]" : "w-[var(--sidebar-width)]"
+    <>
+      {/* Mobile Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
       )}
-    >
-      {/* Brand Header */}
-      <div
+      <aside
         className={cn(
-          "flex h-16 shrink-0 items-center gap-3 border-b border-sidebar-border px-4",
-          isCollapsed && "justify-center px-2"
+          "group flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-in-out",
+          // Desktop sizing
+          isCollapsed ? "md:w-[var(--sidebar-collapsed-width)]" : "md:w-[var(--sidebar-width)]",
+          // Mobile placement & drawer behavior
+          "fixed inset-y-0 left-0 z-50 w-[260px] md:relative md:z-0",
+          isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
-        <div className="brain-glow flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-brand-foreground">
-          <Brain size={18} strokeWidth={2.2} />
-        </div>
-        {!isCollapsed && (
-          <div className="flex flex-col">
-            <span className="text-sm font-bold tracking-tight text-foreground">
-              Nexus
-            </span>
-            <span className="text-[11px] text-muted-foreground">
-              Document Intelligence
-            </span>
+        {/* Brand Header */}
+        <div
+          className={cn(
+            "flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-4",
+            isCollapsed && "justify-center px-2"
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <div className="brain-glow flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand text-brand-foreground">
+              <Brain size={18} strokeWidth={2.2} />
+            </div>
+            {!isCollapsed && (
+              <div className="flex flex-col">
+                <span className="text-sm font-bold tracking-tight text-foreground">
+                  Nexus
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  Document Intelligence
+                </span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
+          {!isCollapsed && (
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
+              title="Close sidebar"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
 
       {/* Search */}
       {!isCollapsed && (
@@ -443,5 +470,6 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  </>
   );
 }

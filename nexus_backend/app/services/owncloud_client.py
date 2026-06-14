@@ -104,12 +104,20 @@ class OwnCloudClient:
     # AUTH
     # ══════════════════════════════════════════════════════════════════════
 
-    async def validate_credentials(self, username: str, password: str) -> bool:
+    async def validate_credentials(self, username: str = "", password: str = "") -> bool:
         """Return True if the credentials are valid ownCloud credentials."""
+        settings = get_settings()
+        user = username or settings.OWNCLOUD_USERNAME
+        pwd = password or settings.OWNCLOUD_PASSWORD
+
         url = self._ocs_url("/cloud/user?format=json")
+        headers = {
+            "OCS-APIRequest": "true",
+            "Accept": "application/json",
+        }
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
             try:
-                r = await c.get(url, auth=self._auth(username, password))
+                r = await c.get(url, auth=self._auth(user, pwd), headers=headers)
                 return r.status_code == 200
             except httpx.RequestError:
                 return False

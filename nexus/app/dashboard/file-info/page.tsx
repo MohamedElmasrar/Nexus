@@ -28,7 +28,6 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import PdfViewer from "@/components/PdfViewer";
 
 function getFileIcon(contentType: string, name: string, size: number = 36) {
   if (contentType?.includes("pdf")) return <FileText size={size} className="text-red-400" />;
@@ -83,7 +82,6 @@ function FileInfoContent() {
 
   // Preview state
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(true);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -118,7 +116,6 @@ function FileInfoContent() {
     setPreviewLoading(true);
     setPreviewError(null);
     setBlobUrl(null);
-    setPdfBlob(null);
     setTextContent(null);
 
     const load = async () => {
@@ -134,7 +131,9 @@ function FileInfoContent() {
           localUrl = URL.createObjectURL(imgBlob);
           setBlobUrl(localUrl);
         } else if (isPdf) {
-          setPdfBlob(res.data);
+          const pdfBlob = new Blob([res.data], { type: "application/pdf" });
+          localUrl = URL.createObjectURL(pdfBlob);
+          setBlobUrl(localUrl);
         } else if (isText) {
           setTextContent(await res.data.text());
         }
@@ -323,8 +322,8 @@ function FileInfoContent() {
                 Download File
               </Button>
             </div>
-          ) : pdfBlob && isPdf ? (
-            <PdfViewer pdfBlob={pdfBlob} fileName={fileName} />
+          ) : blobUrl && isPdf ? (
+            <iframe src={blobUrl} className="w-full h-full rounded-xl bg-background border border-border/50 shadow-inner" title={fileName} />
           ) : blobUrl && isImage ? (
             <img src={blobUrl} alt={fileName} className="max-w-full max-h-full object-contain rounded-xl shadow-lg border border-border" />
           ) : textContent && isText ? (

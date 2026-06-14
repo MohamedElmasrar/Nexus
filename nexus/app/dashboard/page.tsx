@@ -32,7 +32,6 @@ import {
   Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import PdfViewer from "@/components/PdfViewer";
 
 function getFileIcon(file: OwnCloudFile) {
   if (file.is_directory) return <Folder size={18} className="text-brand" />;
@@ -887,7 +886,6 @@ function DocumentPreviewModal({
   onDelete,
 }: DocumentPreviewModalProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -904,7 +902,6 @@ function DocumentPreviewModal({
       setLoading(true);
       setError(null);
       setBlobUrl(null);
-      setPdfBlob(null);
       setTextContent(null);
       try {
         const extension = file.name.toLowerCase().split(".").pop();
@@ -930,7 +927,9 @@ function DocumentPreviewModal({
           localUrl = URL.createObjectURL(imgBlob);
           setBlobUrl(localUrl);
         } else if (isPdf) {
-          setPdfBlob(res.data);
+          const pdfBlob = new Blob([res.data], { type: "application/pdf" });
+          localUrl = URL.createObjectURL(pdfBlob);
+          setBlobUrl(localUrl);
         } else if (isText) {
           const txt = await res.data.text();
           setTextContent(txt);
@@ -1007,8 +1006,12 @@ function DocumentPreviewModal({
                   Download File
                 </Button>
               </div>
-            ) : pdfBlob && isPdf ? (
-              <PdfViewer pdfBlob={pdfBlob} fileName={file.name} />
+            ) : blobUrl && isPdf ? (
+              <iframe
+                src={blobUrl}
+                className="w-full h-full rounded-xl bg-background border border-border/50 shadow-inner"
+                title={file.name}
+              />
             ) : blobUrl && isImage ? (
               <div className="w-full h-full flex items-center justify-center p-2">
                 <img

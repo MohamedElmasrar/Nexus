@@ -38,7 +38,9 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    void loadConversations();
+    Promise.resolve().then(() => {
+      void loadConversations();
+    });
   }, [loadConversations]);
 
   const handleCreate = async () => {

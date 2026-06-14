@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useCallback, useRef, use } from "react";
 import { useRouter } from "next/navigation";
-import { api, type ChatConversation, type ChatMessage } from "@/lib/api";
+import { api, type ChatConversation } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,11 +19,8 @@ import {
   Trash2,
   Plus,
   MessageSquare,
-  Clock,
   Pencil,
   Check,
-  X,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -116,11 +113,15 @@ function ConversationContent({ conversationId }: { conversationId: number }) {
   }, [conversationId]);
 
   useEffect(() => {
-    void loadConversations();
+    Promise.resolve().then(() => {
+      void loadConversations();
+    });
   }, [loadConversations, conversationId]);
 
   useEffect(() => {
-    void loadConversation();
+    Promise.resolve().then(() => {
+      void loadConversation();
+    });
   }, [loadConversation]);
 
   // Auto-scroll to bottom when messages change

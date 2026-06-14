@@ -82,14 +82,18 @@ export function ChatSidebar() {
   // Sync with SidebarContext
   useEffect(() => {
     if (activeConversationId !== undefined) {
-      setConversationId(activeConversationId);
+      Promise.resolve().then(() => {
+        setConversationId(activeConversationId);
+      });
     }
   }, [activeConversationId]);
 
   // Load conversation history when ID changes
   useEffect(() => {
     if (!conversationId) {
-      setMessages([WELCOME_MESSAGE]);
+      Promise.resolve().then(() => {
+        setMessages([WELCOME_MESSAGE]);
+      });
       return;
     }
 

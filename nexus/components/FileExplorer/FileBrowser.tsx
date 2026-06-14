@@ -185,19 +185,21 @@ function FileBrowserInner({
 
   useEffect(() => {
     const fileId = searchParams.get("fileId");
-
-    if (fileId) {
-      const match = repositoryFiles.find((file) => file.id === fileId) || null;
-      if (match) {
-        setSelectedFile(match);
-      }
-    }
-
     const q = searchParams.get("q");
-    if (q !== null) {
-      setSearchQuery(q);
-      setShowFilter(true);
-    }
+
+    Promise.resolve().then(() => {
+      if (fileId) {
+        const match = repositoryFiles.find((file) => file.id === fileId) || null;
+        if (match) {
+          setSelectedFile(match);
+        }
+      }
+
+      if (q !== null) {
+        setSearchQuery(q);
+        setShowFilter(true);
+      }
+    });
   }, [repositoryFiles, searchParams]);
 
   const handleRefresh = () => {

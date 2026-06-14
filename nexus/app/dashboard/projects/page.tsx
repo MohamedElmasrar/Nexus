@@ -8,19 +8,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Folder,
-  Plus,
   Trash2,
   Loader2,
   Search,
-  Users,
-  Info,
   Calendar,
   HardDrive,
   X,
   PlusCircle,
   FolderOpen,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export default function ProjectsPage() {
   const router = useRouter();
@@ -84,13 +80,17 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     if (!authLoading && isLoggedIn) {
-      void loadProjects();
+      Promise.resolve().then(() => {
+        void loadProjects();
+      });
     }
   }, [authLoading, isLoggedIn, loadProjects]);
 
   useEffect(() => {
     if (showCreateModal) {
-      void loadGroups();
+      Promise.resolve().then(() => {
+        void loadGroups();
+      });
     }
   }, [showCreateModal, loadGroups]);
 

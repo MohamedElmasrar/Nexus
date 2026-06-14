@@ -236,15 +236,18 @@ function AdminFilesContent() {
         return a.name.localeCompare(b.name);
       });
       setFiles(sortedFiles);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      const err = e as Error;
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void loadFiles(currentPath);
+    Promise.resolve().then(() => {
+      void loadFiles(currentPath);
+    });
   }, [currentPath, loadFiles]);
 
   const navigateTo = (path: string) => {

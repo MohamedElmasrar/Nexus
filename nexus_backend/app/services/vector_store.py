@@ -32,7 +32,7 @@ from chromadb import EmbeddingFunction, Documents, Embeddings
 from google import genai
 
 class GeminiEmbeddingFunction(EmbeddingFunction):
-    def __init__(self, api_key: str, model_name: str = "text-embedding-004"):
+    def __init__(self, api_key: str, model_name: str = "gemini-embedding-2"):
         self.api_key = api_key
         self.model_name = model_name
         self._client = None
@@ -47,9 +47,14 @@ class GeminiEmbeddingFunction(EmbeddingFunction):
         if not input:
             return []
         try:
+            from google.genai import types
+            contents = [
+                types.Content(parts=[types.Part.from_text(text=doc)])
+                for doc in input
+            ]
             response = self.client.models.embed_content(
                 model=self.model_name,
-                contents=input,
+                contents=contents,
             )
             if hasattr(response, "embeddings"):
                 return [e.values for e in response.embeddings]

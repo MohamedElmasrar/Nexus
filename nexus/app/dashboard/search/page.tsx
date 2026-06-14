@@ -17,7 +17,6 @@ import {
   AlertCircle,
   Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 function getFileIcon(name: string) {
   const ext = name.toLowerCase().split(".").pop();
@@ -76,12 +75,14 @@ function SearchContent() {
   }, []);
 
   useEffect(() => {
-    setQuery(initialQuery);
-    if (initialQuery) {
-      void executeSearch(initialQuery);
-    } else {
-      setResults([]);
-    }
+    Promise.resolve().then(() => {
+      setQuery(initialQuery);
+      if (initialQuery) {
+        void executeSearch(initialQuery);
+      } else {
+        setResults([]);
+      }
+    });
   }, [initialQuery, executeSearch]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

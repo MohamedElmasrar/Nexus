@@ -24,7 +24,6 @@ import {
   ArrowLeft,
   Users,
   Info,
-  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -170,11 +169,15 @@ function ProjectContent({ projectId }: { projectId: number }) {
   }, [projectId]);
 
   useEffect(() => {
-    void loadProject();
+    Promise.resolve().then(() => {
+      void loadProject();
+    });
   }, [loadProject]);
 
   useEffect(() => {
-    void loadFiles(currentPath);
+    Promise.resolve().then(() => {
+      void loadFiles(currentPath);
+    });
   }, [currentPath, loadFiles]);
 
   const handleNavigate = (path: string) => {

@@ -7,7 +7,6 @@ import { StatsCard } from "@/components/Admin/StatsCard";
 
 export default function AdminDrivesPage() {
   const [status, setStatus] = useState<"loading" | "connected" | "error">("loading");
-  const [owncloudUrl, setOwncloudUrl] = useState("");
 
   useEffect(() => {
     // Check if the backend can reach ownCloud by hitting the health endpoint
@@ -15,9 +14,7 @@ export default function AdminDrivesPage() {
       try {
         const res = await fetch("/api/nexus?path=/api/v1/health", { cache: "no-store" });
         if (res.ok) {
-          const data = await res.json();
           setStatus("connected");
-          setOwncloudUrl(data.owncloud_url || "Configured via environment");
         } else {
           setStatus("error");
         }

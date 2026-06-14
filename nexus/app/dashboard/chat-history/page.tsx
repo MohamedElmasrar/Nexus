@@ -34,7 +34,9 @@ export default function ChatHistoryPage() {
   }, []);
 
   useEffect(() => {
-    void loadConversations();
+    Promise.resolve().then(() => {
+      void loadConversations();
+    });
   }, [loadConversations]);
 
   const handleDelete = async (id: number, e: React.MouseEvent) => {

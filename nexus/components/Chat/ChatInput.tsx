@@ -22,7 +22,9 @@ export function ChatInput({ onSend, disabled = false }: ChatInputProps) {
   // Generate preview URLs when images change
   useEffect(() => {
     const urls = images.map((file) => URL.createObjectURL(file));
-    setPreviewUrls(urls);
+    Promise.resolve().then(() => {
+      setPreviewUrls(urls);
+    });
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [images]);
 

@@ -38,7 +38,9 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    void loadUsers();
+    Promise.resolve().then(() => {
+      void loadUsers();
+    });
   }, [loadUsers]);
 
   const handleCreate = async () => {
@@ -71,8 +73,9 @@ export default function AdminUsersPage() {
             : "Failed to create user. Ensure password meets ownCloud policies.";
         setFormError(errorMsg);
       }
-    } catch (e: any) {
-      setFormError(e.message || "Failed to create user.");
+    } catch (e) {
+      const err = e as Error;
+      setFormError(err.message || "Failed to create user.");
     } finally {
       setSubmitting(false);
     }
@@ -94,8 +97,9 @@ export default function AdminUsersPage() {
             : "Failed to delete user.";
         alert(errorMsg);
       }
-    } catch (e: any) {
-      alert(e.message || "Failed to delete user.");
+    } catch (e) {
+      const err = e as Error;
+      alert(err.message || "Failed to delete user.");
     } finally {
       setDeleting(false);
     }

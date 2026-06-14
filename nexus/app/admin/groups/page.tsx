@@ -84,8 +84,10 @@ export default function AdminGroupsPage() {
   }, []);
 
   useEffect(() => {
-    void loadGroups();
-    void loadUsers();
+    Promise.resolve().then(() => {
+      void loadGroups();
+      void loadUsers();
+    });
   }, [loadGroups, loadUsers]);
 
   const loadMembers = async (groupId: string) => {

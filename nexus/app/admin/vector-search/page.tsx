@@ -90,7 +90,7 @@ export default function VectorSearchPage() {
 
       if (!res.ok) {
         setError(
-          (res.data as any)?.detail || "Search failed. Is the vector store running?"
+          (res.data as { detail?: string })?.detail || "Search failed. Is the vector store running?"
         );
         return;
       }

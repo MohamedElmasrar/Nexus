@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Settings as SettingsIcon, User, Shield, Bell, HardDrive, CreditCard } from "lucide-react";
+import { Settings as SettingsIcon, User, Shield, HardDrive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 

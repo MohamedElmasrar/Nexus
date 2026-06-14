@@ -111,8 +111,9 @@ export async function nexusFetchBlob(
     }
     const blob = await res.blob();
     return { ok: true, data: blob, status: res.status };
-  } catch (err: any) {
-    return { ok: false, status: 0, error: err.message };
+  } catch (err) {
+    const errorVal = err as Error;
+    return { ok: false, status: 0, error: errorVal.message };
   }
 }
 

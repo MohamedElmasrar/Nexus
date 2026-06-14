@@ -56,8 +56,10 @@ export function Sidebar() {
       return;
     }
 
-    setShowSearchResults(true);
-    setIsSearching(true);
+    Promise.resolve().then(() => {
+      setShowSearchResults(true);
+      setIsSearching(true);
+    });
 
     const delayDebounce = setTimeout(async () => {
       try {

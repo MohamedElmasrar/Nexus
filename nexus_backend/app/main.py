@@ -27,6 +27,7 @@ from app.routers import (
     auth,
     chat,
     users_me,
+    projects,
 )
 
 logger = logging.getLogger("nexus")
@@ -93,6 +94,7 @@ app.include_router(admin_files.router)
 app.include_router(ai.router)
 app.include_router(chat.router)
 app.include_router(users_me.router)
+app.include_router(projects.router)
 
 
 # ── Health ──────────────────────────────────────────────────────────────────

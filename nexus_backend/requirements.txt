@@ -28,7 +28,6 @@ openpyxl>=3.1.0
 
 # Vector database & embeddings
 chromadb>=0.5.0
-sentence-transformers>=3.0.0
 
 # LLM integration (Google Gemini)
 google-genai>=1.0.0

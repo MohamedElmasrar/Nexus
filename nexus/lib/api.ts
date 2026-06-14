@@ -299,6 +299,76 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ message, images, response_length: responseLength }),
     }),
+
+  // User Management
+  createUser: (data: any) =>
+    nexusFetch<any>("/api/v1/admin/users/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteUser: (username: string) =>
+    nexusFetch<any>(`/api/v1/admin/users/${encodeURIComponent(username)}`, {
+      method: "DELETE",
+    }),
+
+  // Projects
+  listProjects: () =>
+    nexusFetch<any[]>("/api/v1/projects/"),
+  createProject: (data: { name: string; description: string; group_id: string }) =>
+    nexusFetch<any>("/api/v1/projects/", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteProject: (id: number) =>
+    nexusFetch<any>(`/api/v1/projects/${id}`, {
+      method: "DELETE",
+    }),
+  getProject: (id: number) =>
+    nexusFetch<any>(`/api/v1/projects/${id}`),
+  browseProjectFiles: (id: number, path: string = "/") =>
+    nexusFetch<OwnCloudFile[]>(`/api/v1/projects/${id}/files?path=${encodeURIComponent(path)}`),
+  uploadProjectFile: (id: number, path: string, formData: FormData) =>
+    fetch(`/api/nexus?path=${encodeURIComponent(`/api/v1/projects/${id}/files/upload?path=${encodeURIComponent(path)}`)}`, {
+      method: "POST",
+      body: formData,
+    }),
+  createProjectFolder: (id: number, path: string) =>
+    nexusFetch<any>(`/api/v1/projects/${id}/files/folder`, {
+      method: "POST",
+      body: JSON.stringify({ path }),
+    }),
+
+  // Favorites
+  listFavorites: () =>
+    nexusFetch<any[]>("/api/v1/users/me/favorites"),
+  addFavorite: (filePath: string, fileName: string) =>
+    nexusFetch<any>("/api/v1/users/me/favorites", {
+      method: "POST",
+      body: JSON.stringify({ file_path: filePath, file_name: fileName }),
+    }),
+  removeFavorite: (filePath: string) =>
+    nexusFetch<any>(`/api/v1/users/me/favorites?file_path=${encodeURIComponent(filePath)}`, {
+      method: "DELETE",
+    }),
+
+  // Recent Views
+  listRecentViews: (limit: number = 20) =>
+    nexusFetch<any[]>(`/api/v1/users/me/recent-views?limit=${limit}`),
+  recordView: (filePath: string, fileName: string) =>
+    nexusFetch<any>("/api/v1/users/me/recent-views", {
+      method: "POST",
+      body: JSON.stringify({ file_path: filePath, file_name: fileName }),
+    }),
+  clearRecentViews: () =>
+    nexusFetch<any>("/api/v1/users/me/recent-views", {
+      method: "DELETE",
+    }),
+
+  // Content Search
+  searchMyFiles: (query: string, n: number = 10) =>
+    nexusFetch<{ query: string; results: any[] }>(
+      `/api/v1/users/me/files/search?q=${encodeURIComponent(query)}&n=${n}`
+    ),
 };
 
 // ── Chat Types ──────────────────────────────────────────────────────────────

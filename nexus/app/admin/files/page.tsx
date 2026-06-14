@@ -228,7 +228,14 @@ function AdminFilesContent() {
     try {
       const res = await api.adminBrowseFiles(path);
       if (!res.ok) throw new Error("Failed to load files");
-      setFiles(res.data || []);
+      const sortedFiles = [...(res.data || [])].sort((a, b) => {
+        const aIsDir = a.is_directory;
+        const bIsDir = b.is_directory;
+        if (aIsDir && !bIsDir) return -1;
+        if (!aIsDir && bIsDir) return 1;
+        return a.name.localeCompare(b.name);
+      });
+      setFiles(sortedFiles);
     } catch (e: any) {
       setError(e.message);
     } finally {

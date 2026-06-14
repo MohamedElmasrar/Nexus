@@ -29,8 +29,10 @@ import {
   Calendar,
   Eye,
   RefreshCw,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PdfViewer from "@/components/PdfViewer";
 
 function getFileIcon(file: OwnCloudFile) {
   if (file.is_directory) return <Folder size={18} className="text-brand" />;
@@ -138,6 +140,40 @@ function DashboardContent() {
   const [newFolderName, setNewFolderName] = useState("");
   const [creatingFolder, setCreatingFolder] = useState(false);
 
+  // Favorites state and handlers
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  const loadFavorites = useCallback(async () => {
+    try {
+      const res = await api.listFavorites();
+      if (res.ok && res.data) {
+        setFavorites(res.data.map((f: any) => f.file_path));
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleToggleFavorite = async (file: OwnCloudFile, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isFav = favorites.includes(file.path);
+    try {
+      if (isFav) {
+        const res = await api.removeFavorite(file.path);
+        if (res.ok) {
+          setFavorites((prev) => prev.filter((p) => p !== file.path));
+        }
+      } else {
+        const res = await api.addFavorite(file.path, file.name);
+        if (res.ok) {
+          setFavorites((prev) => [...prev, file.path]);
+        }
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   useEffect(() => {
     const nextPath = searchParams.get("path") || "/";
     setCurrentPath(nextPath);
@@ -171,7 +207,14 @@ function DashboardContent() {
         return;
       }
 
-      setFiles(res.data || []);
+      const sortedFiles = [...(res.data || [])].sort((a, b) => {
+        const aIsDir = a.is_directory;
+        const bIsDir = b.is_directory;
+        if (aIsDir && !bIsDir) return -1;
+        if (!aIsDir && bIsDir) return 1;
+        return a.name.localeCompare(b.name);
+      });
+      setFiles(sortedFiles);
     } catch (e: any) {
       setError(e.message || "Failed to load files");
     } finally {
@@ -208,8 +251,9 @@ function DashboardContent() {
   useEffect(() => {
     if (!authLoading && isLoggedIn) {
       void loadFiles(currentPath);
+      void loadFavorites();
     }
-  }, [currentPath, authLoading, isLoggedIn, loadFiles]);
+  }, [currentPath, authLoading, isLoggedIn, loadFiles, loadFavorites]);
 
   useEffect(() => {
     setSelectedFile(null);
@@ -227,11 +271,12 @@ function DashboardContent() {
     if (file.is_directory) {
       navigateTo(file.path);
     } else {
-      setSelectedFile(file);
+      router.push(`/dashboard/file-info?path=${encodeURIComponent(file.path)}`);
     }
   };
 
   const handleDownload = async (file: OwnCloudFile) => {
+    void api.recordView(file.path, file.name).catch(() => {});
     const res = await api.downloadMyFile(file.path);
     if (res.ok && res.data) {
       const url = window.URL.createObjectURL(res.data);
@@ -449,7 +494,7 @@ function DashboardContent() {
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
                         {getFileIcon(file)}
-                        <span className="text-sm font-medium text-foreground">
+                        <span className="text-sm font-medium text-foreground max-w-[250px] truncate block" title={decodeURIComponent(file.name)}>
                           {decodeURIComponent(file.name)}
                         </span>
                       </div>
@@ -467,12 +512,28 @@ function DashboardContent() {
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setPreviewTarget(file);
+                                router.push(`/dashboard/file-info?path=${encodeURIComponent(file.path)}`);
                               }}
                               className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-brand"
-                              title="Preview Workspace"
+                              title="View File Details"
                             >
                               <Eye size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                void handleToggleFavorite(file, e);
+                              }}
+                              className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted"
+                              title={favorites.includes(file.path) ? "Remove from Favorites" : "Add to Favorites"}
+                            >
+                              <Star
+                                size={16}
+                                className={cn(
+                                  favorites.includes(file.path)
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-muted-foreground hover:text-yellow-400"
+                                )}
+                              />
                             </button>
                             <button
                               onClick={(e) => {
@@ -505,16 +566,7 @@ function DashboardContent() {
           )}
         </div>
 
-        {/* Right Side: Collapsible Side Panel */}
-        {selectedFile && (
-          <FileSidePanel
-            file={selectedFile}
-            onClose={() => setSelectedFile(null)}
-            onDownload={() => handleDownload(selectedFile)}
-            onDelete={() => setDeleteTarget(selectedFile)}
-            onPreview={() => setPreviewTarget(selectedFile)}
-          />
-        )}
+        {/* Right Side: Collapsible Side Panel (Removed in favor of dedicated file-info page) */}
       </div>
     </div>
   );
@@ -835,6 +887,7 @@ function DocumentPreviewModal({
   onDelete,
 }: DocumentPreviewModalProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [textContent, setTextContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -851,6 +904,7 @@ function DocumentPreviewModal({
       setLoading(true);
       setError(null);
       setBlobUrl(null);
+      setPdfBlob(null);
       setTextContent(null);
       try {
         const extension = file.name.toLowerCase().split(".").pop();
@@ -864,12 +918,6 @@ function DocumentPreviewModal({
           file.content_type?.includes("json") ||
           ["txt", "md", "json", "csv", "py", "js", "ts", "tsx", "html", "css", "xml", "yaml", "yml"].includes(extension || "");
 
-        if (isImage) {
-          setBlobUrl(previewUrl);
-          setLoading(false);
-          return;
-        }
-
         const res = await api.downloadMyFile(file.path, true);
         if (!active) return;
         if (!res.ok || !res.data) {
@@ -877,10 +925,12 @@ function DocumentPreviewModal({
           return;
         }
 
-        if (isPdf) {
-          const pdfBlob = new Blob([res.data], { type: "application/pdf" });
-          localUrl = URL.createObjectURL(pdfBlob);
+        if (isImage) {
+          const imgBlob = new Blob([res.data], { type: file.content_type || "image/png" });
+          localUrl = URL.createObjectURL(imgBlob);
           setBlobUrl(localUrl);
+        } else if (isPdf) {
+          setPdfBlob(res.data);
         } else if (isText) {
           const txt = await res.data.text();
           setTextContent(txt);
@@ -957,12 +1007,8 @@ function DocumentPreviewModal({
                   Download File
                 </Button>
               </div>
-            ) : blobUrl && isPdf ? (
-              <iframe
-                src={blobUrl}
-                className="w-full h-full rounded-xl bg-background border border-border/50 shadow-inner"
-                title={file.name}
-              />
+            ) : pdfBlob && isPdf ? (
+              <PdfViewer pdfBlob={pdfBlob} fileName={file.name} />
             ) : blobUrl && isImage ? (
               <div className="w-full h-full flex items-center justify-center p-2">
                 <img

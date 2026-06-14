@@ -92,10 +92,20 @@ export function FileExplorer({
 }: FileExplorerProps) {
   const [itemToDelete, setItemToDelete] = useState<FileItem | null>(null);
 
+  const sortedFiles = React.useMemo(() => {
+    return [...files].sort((a, b) => {
+      const aIsDir = a.type === "folder";
+      const bIsDir = b.type === "folder";
+      if (aIsDir && !bIsDir) return -1;
+      if (!aIsDir && bIsDir) return 1;
+      return a.name.localeCompare(b.name);
+    });
+  }, [files]);
+
   if (viewMode === "grid") {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {files.map((file) => (
+        {sortedFiles.map((file) => (
           <div
             key={file.id}
             onClick={() =>
@@ -182,7 +192,7 @@ export function FileExplorer({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {files.map((file) => (
+          {sortedFiles.map((file) => (
             <TableRow
               key={file.id}
               onClick={() =>

@@ -28,6 +28,39 @@ class SearchResult:
     distance: float
 
 
+from chromadb import EmbeddingFunction, Documents, Embeddings
+from google import genai
+
+class GeminiEmbeddingFunction(EmbeddingFunction):
+    def __init__(self, api_key: str, model_name: str = "text-embedding-004"):
+        self.api_key = api_key
+        self.model_name = model_name
+        self._client = None
+
+    @property
+    def client(self):
+        if self._client is None:
+            self._client = genai.Client(api_key=self.api_key)
+        return self._client
+
+    def __call__(self, input: Documents) -> Embeddings:
+        if not input:
+            return []
+        try:
+            response = self.client.models.embed_content(
+                model=self.model_name,
+                contents=input,
+            )
+            if hasattr(response, "embeddings"):
+                return [e.values for e in response.embeddings]
+            elif hasattr(response, "embedding"):
+                return [response.embedding.values]
+            else:
+                raise ValueError("Unexpected response format from Gemini embedding API")
+        except Exception as e:
+            logger.error(f"Gemini embedding generation failed: {e}")
+            raise e
+
 # ── Singleton client ───────────────────────────────────────────────────────
 
 _client: chromadb.ClientAPI | None = None
@@ -37,9 +70,9 @@ _embedding_fn = None
 def _get_embedding_fn():
     global _embedding_fn
     if _embedding_fn is None:
-        _embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
-            model_name="all-MiniLM-L6-v2"
-        )
+        settings = get_settings()
+        api_key = settings.GEMINI_API_KEY or "DUMMY_KEY"
+        _embedding_fn = GeminiEmbeddingFunction(api_key=api_key)
     return _embedding_fn
 
 
@@ -54,11 +87,23 @@ def _get_client() -> chromadb.ClientAPI:
 
 def _get_collection():
     client = _get_client()
-    return client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        embedding_function=_get_embedding_fn(),
-        metadata={"hnsw:space": "cosine"},
-    )
+    try:
+        return client.get_or_create_collection(
+            name=COLLECTION_NAME,
+            embedding_function=_get_embedding_fn(),
+            metadata={"hnsw:space": "cosine"},
+        )
+    except Exception as e:
+        logger.warning(f"Error getting collection, recreating it: {e}")
+        try:
+            client.delete_collection(name=COLLECTION_NAME)
+        except Exception:
+            pass
+        return client.get_or_create_collection(
+            name=COLLECTION_NAME,
+            embedding_function=_get_embedding_fn(),
+            metadata={"hnsw:space": "cosine"},
+        )
 
 
 # ── Public API ─────────────────────────────────────────────────────────────

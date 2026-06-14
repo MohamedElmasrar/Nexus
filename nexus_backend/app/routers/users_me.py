@@ -13,9 +13,13 @@ from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
+from datetime import datetime, timezone
 
 from app.core.dependencies import CurrentUser, get_current_user, get_db
 from app.services.owncloud_client import get_owncloud_client
+from app.models.favorite import Favorite
+from app.models.recent_view import RecentView
+
 
 router = APIRouter(prefix="/api/v1/users/me", tags=["Current User"])
 
@@ -297,6 +301,177 @@ async def get_file_summary(
         "takeaways": summary_obj.takeaways,
         "tags": summary_obj.tags
     }
+
+
+# ── Favorites ──────────────────────────────────────────────────────────────
+
+class FavoriteRequest(BaseModel):
+    file_path: str
+    file_name: str
+
+@router.get("/favorites")
+async def list_favorites(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List the current user's favorite files."""
+    favs = (
+        db.query(Favorite)
+        .filter(Favorite.username == current_user.username)
+        .order_by(Favorite.created_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": f.id,
+            "file_path": f.file_path,
+            "file_name": f.file_name,
+            "created_at": f.created_at.isoformat() if f.created_at else None,
+        }
+        for f in favs
+    ]
+
+@router.post("/favorites")
+async def add_favorite(
+    data: FavoriteRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Add a file to the current user's favorites."""
+    existing = (
+        db.query(Favorite)
+        .filter(Favorite.username == current_user.username, Favorite.file_path == data.file_path)
+        .first()
+    )
+    if existing:
+        return {"id": existing.id, "file_path": existing.file_path, "file_name": existing.file_name, "detail": "Already in favorites"}
+    
+    fav = Favorite(
+        username=current_user.username,
+        file_path=data.file_path,
+        file_name=data.file_name,
+    )
+    db.add(fav)
+    db.commit()
+    db.refresh(fav)
+    return {"id": fav.id, "file_path": fav.file_path, "file_name": fav.file_name}
+
+@router.delete("/favorites")
+async def remove_favorite(
+    file_path: str = Query(..., description="File path to unfavorite"),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Remove a file from the current user's favorites."""
+    deleted = (
+        db.query(Favorite)
+        .filter(Favorite.username == current_user.username, Favorite.file_path == file_path)
+        .delete()
+    )
+    db.commit()
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Favorite not found")
+    return {"detail": f"Removed {file_path} from favorites"}
+
+
+# ── Recent Views ───────────────────────────────────────────────────────────
+
+class RecentViewRequest(BaseModel):
+    file_path: str
+    file_name: str
+
+@router.get("/recent-views")
+async def list_recent_views(
+    limit: int = Query(20, ge=1, le=50, description="Max results"),
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """List the current user's recently viewed files."""
+    views = (
+        db.query(RecentView)
+        .filter(RecentView.username == current_user.username)
+        .order_by(RecentView.viewed_at.desc())
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": v.id,
+            "file_path": v.file_path,
+            "file_name": v.file_name,
+            "viewed_at": v.viewed_at.isoformat() if v.viewed_at else None,
+        }
+        for v in views
+    ]
+
+@router.post("/recent-views")
+async def record_view(
+    data: RecentViewRequest,
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Record a file view (upserts — updates viewed_at if already exists)."""
+    existing = (
+        db.query(RecentView)
+        .filter(RecentView.username == current_user.username, RecentView.file_path == data.file_path)
+        .first()
+    )
+    if existing:
+        existing.viewed_at = datetime.now(timezone.utc)
+        existing.file_name = data.file_name
+        db.commit()
+        return {"id": existing.id, "file_path": existing.file_path, "file_name": existing.file_name}
+    
+    view = RecentView(
+        username=current_user.username,
+        file_path=data.file_path,
+        file_name=data.file_name,
+    )
+    db.add(view)
+    db.commit()
+    db.refresh(view)
+    return {"id": view.id, "file_path": view.file_path, "file_name": view.file_name}
+
+@router.delete("/recent-views")
+async def clear_recent_views(
+    current_user: CurrentUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Clear all recent views for the current user."""
+    db.query(RecentView).filter(RecentView.username == current_user.username).delete()
+    db.commit()
+    return {"detail": "Recent views cleared"}
+
+
+# ── Content Search ─────────────────────────────────────────────────────────
+
+@router.get("/files/search")
+async def search_files(
+    q: str = Query(..., description="Search query"),
+    n: int = Query(10, ge=1, le=50, description="Max results"),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    """Search document content via vector similarity. Returns matching files with snippets."""
+    from app.services import vector_store
+    
+    results = vector_store.search(q, n_results=n)
+    
+    # Deduplicate by file_path, keeping the best (lowest distance) result per file
+    seen: dict[str, dict] = {}
+    for r in results:
+        if r.file_path not in seen or r.distance < seen[r.file_path]["distance"]:
+            seen[r.file_path] = {
+                "file_path": r.file_path,
+                "file_name": r.file_path.rsplit("/", 1)[-1] if "/" in r.file_path else r.file_path,
+                "snippet": r.text[:200],
+                "distance": r.distance,
+            }
+    
+    return {
+        "query": q,
+        "results": sorted(seen.values(), key=lambda x: x["distance"]),
+    }
+
 
 
 

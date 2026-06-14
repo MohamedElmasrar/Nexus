@@ -169,6 +169,52 @@ class OwnCloudClient:
                 is_admin="admin" in groups,
             )
 
+    async def create_user(
+        self, admin_user: str, admin_pass: str,
+        username: str, password: str,
+        display_name: str = "", email: str = ""
+    ) -> bool:
+        """Create a new ownCloud user (requires admin)."""
+        url = self._ocs_url("/cloud/users?format=json")
+        data = {"userid": username, "password": password}
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
+            r = await c.post(url, data=data, auth=self._auth(admin_user, admin_pass))
+            if r.status_code != 200:
+                return False
+            # Check OCS status code
+            ocs_meta = r.json().get("ocs", {}).get("meta", {})
+            if ocs_meta.get("statuscode") not in (100, 200):
+                return False
+        # Set display name and email if provided
+        if display_name:
+            await self.update_user(admin_user, admin_pass, username, "displayname", display_name)
+        if email:
+            await self.update_user(admin_user, admin_pass, username, "email", email)
+        return True
+
+    async def delete_user(
+        self, admin_user: str, admin_pass: str, username: str
+    ) -> bool:
+        """Delete an ownCloud user (requires admin)."""
+        url = self._ocs_url(f"/cloud/users/{quote(username)}?format=json")
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
+            r = await c.delete(url, auth=self._auth(admin_user, admin_pass))
+            return r.status_code == 200
+
+    async def update_user(
+        self, admin_user: str, admin_pass: str,
+        username: str, key: str, value: str
+    ) -> bool:
+        """Update a user attribute (requires admin). Key can be 'displayname', 'email', 'password', etc."""
+        url = self._ocs_url(f"/cloud/users/{quote(username)}?format=json")
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as c:
+            r = await c.put(
+                url,
+                data={"key": key, "value": value},
+                auth=self._auth(admin_user, admin_pass),
+            )
+            return r.status_code == 200
+
     # ══════════════════════════════════════════════════════════════════════
     # GROUPS (OCS Provisioning)
     # ══════════════════════════════════════════════════════════════════════

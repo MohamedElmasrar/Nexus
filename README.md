@@ -317,17 +317,6 @@ Interactive endpoint document sheets are accessible when the backend API contain
 - **Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
 - **ReDoc**: [http://localhost:8000/redoc](http://localhost:8000/redoc)
 
----
-
-## Contributing
-
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/amazing-feature`).
-3. Set up local configurations using `.env.example` templates.
-4. Run testing checks to ensure compatibility.
-5. Commit your changes (`git commit -m 'feat: add amazing feature'`).
-6. Push to your branch (`git push origin feature/amazing-feature`).
-7. Create a Pull Request detailing your changes.
 
 ---
 
